@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Grid,
@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@material-ui/core";
 import TableSec from "./vidly/Table";
-import { withStyles, createMuiTheme } from "@material-ui/core/styles";
+import { makeStyles } from "@material-ui/core/styles";
 import { getMovies } from "../services/fakeMovieService";
 import { getGenres } from "../services/fakeGenreService";
 import Pagination from "../components/Pagination";
@@ -16,9 +16,7 @@ import { paginate } from "../utils/Paginate";
 import Lodash from "lodash";
 import { Link } from "react-router-dom";
 
-const theme = createMuiTheme();
-
-const useStyles = {
+const useStyles = makeStyles((theme) => ({
   section: {
     paddingTop: theme.spacing(4),
     paddingBottom: theme.spacing(4),
@@ -32,134 +30,121 @@ const useStyles = {
   searchFrom: {
     marginBottom: theme.spacing(2),
   },
+}));
+
+const Vidly = () => {
+  //States
+  const [movies, setMovies] = useState([]);
+  const [genres, setGenres] = useState([
+    { _id: "5b21ca3eeb7f6fbccd471817", name: "All" },
+  ]);
+  const [selectGenre, setSelectGenre] = useState("All");
+  const [searchValue, setSearchValue] = useState("");
+  const [sortColmn, setSortColmn] = useState({
+    path: "title",
+    order: "asc",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesOnPage = 4;
+
+  // Functions
+  useEffect(() => {
+    const genVal = [...genres, ...getGenres()];
+    setGenres(genVal);
+
+    const movieVal = [...movies, ...getMovies()];
+    setMovies(movieVal);
+  }, []);
+
+  const handleDelete = (props) => {
+    const values = movies.filter((movie) => movie._id !== props._id);
+    setMovies(values);
+  };
+
+  const handleLikeToggle = (props) => {
+    const values = movies.map((movie) =>
+      movie._id !== props._id ? movie : { ...movie, like: !movie.like }
+    );
+    setMovies(values);
+  };
+
+  const handleActivePage = (props) => {
+    setCurrentPage(props);
+  };
+
+  const handleSelectGenre = (props) => {
+    setSelectGenre(props.name);
+    setCurrentPage(1);
+    setSearchValue("");
+  };
+
+  const handleSorting = (sortColmn) => {
+    setSortColmn(sortColmn);
+  };
+
+  const handleSearch = ({ target: input }) => {
+    setSortColmn({ path: "title", order: "asc" });
+    setSelectGenre("All");
+    setCurrentPage(1);
+    setSearchValue(input.value);
+  };
+
+  // Variables
+  const classes = useStyles();
+  const filterMovies =
+    selectGenre !== "All"
+      ? movies.filter((movie) => movie.genre.name === selectGenre)
+      : movies;
+  const searched = filterMovies.filter((m) =>
+    m.title.toLowerCase().startsWith(searchValue.toLowerCase())
+  );
+  const sorted = Lodash.orderBy(searched, [sortColmn.path], [sortColmn.order]);
+  const restMovies = paginate(sorted, currentPage, moviesOnPage);
+  const moviesLength = searched.length;
+
+  return (
+    <Container>
+      <Grid container className={classes.section} spacing={4}>
+        <Grid item sm={3}>
+          <ListItems genres={genres} onSelectGenre={handleSelectGenre} />
+        </Grid>
+        <Grid item sm={9}>
+          <Link to="/vidly/add-movie" style={{ textDecoration: "none" }}>
+            <Button size="large" variant="contained" color="primary">
+              New Movie
+            </Button>
+          </Link>
+          <Typography display="block" className={classes.topText}>
+            {moviesLength < 1 ? "There are no " : `Showing ${moviesLength} `}
+            movies in the database.
+          </Typography>
+          <TextField
+            id="outlined-basic"
+            label="Search..."
+            variant="outlined"
+            fullWidth
+            className={classes.searchFrom}
+            color="secondary"
+            onChange={handleSearch}
+            value={searchValue}
+          />
+          <TableSec
+            movies={restMovies}
+            onDelete={handleDelete}
+            toggleLike={handleLikeToggle}
+            onSort={handleSorting}
+            sortColmn={sortColmn}
+          />
+          <Pagination
+            moviesLength={moviesLength}
+            currentPage={currentPage}
+            moviesOnPage={moviesOnPage}
+            onActivePage={handleActivePage}
+          />
+        </Grid>
+      </Grid>
+    </Container>
+  );
 };
 
-class Vidly extends Component {
-  state = {
-    movies: [],
-    genres: [{ _id: "5b21ca3eeb7f6fbccd471817", name: "All" }],
-    currentPage: 1,
-    moviesOnPage: 4,
-    selectGenre: "All",
-    sortColmn: {
-      path: "title",
-      order: "asc",
-    },
-    searchValue: "",
-  };
-
-  UNSAFE_componentWillMount() {
-    const oldGenres = [...this.state.genres];
-    const genres = oldGenres.concat(getGenres());
-
-    this.setState({ movies: getMovies(), genres });
-  }
-
-  handleDelete = (props) => {
-    const movies = this.state.movies.filter((movie) => movie._id !== props._id);
-    this.setState({ movies });
-  };
-
-  handleLikeToggle = (props) => {
-    const movies = [...this.state.movies];
-    const index = movies.indexOf(props);
-    movies[index].like = !movies[index].like;
-    this.setState({ movies });
-  };
-
-  handleActivePage = (props) => {
-    this.setState({ currentPage: props });
-  };
-
-  handleSelectGenre = (props) => {
-    this.setState({ selectGenre: props.name, currentPage: 1, searchValue: "" });
-  };
-
-  handleSorting = (sortColmn) => {
-    this.setState({ sortColmn });
-  };
-
-  handleSearch = ({ target: input }) => {
-    const sortColmn = {
-      path: "title",
-      order: "asc",
-    };
-    this.setState({ sortColmn, selectGenre: "All", currentPage: 1 });
-
-    this.setState({ searchValue: input.value });
-  };
-
-  render() {
-    const { classes } = this.props;
-    const {
-      movies: allMovies,
-      currentPage,
-      moviesOnPage,
-      selectGenre,
-      sortColmn,
-      searchValue,
-    } = this.state;
-    const filterMovies =
-      selectGenre !== "All"
-        ? allMovies.filter((movie) => movie.genre.name === selectGenre)
-        : allMovies;
-    const searched = filterMovies.filter((m) =>
-      m.title.toLowerCase().startsWith(searchValue.toLowerCase())
-    );
-    const sorted = Lodash.orderBy(
-      searched,
-      [sortColmn.path],
-      [sortColmn.order]
-    );
-    const movies = paginate(sorted, currentPage, moviesOnPage);
-    const moviesLength = searched.length;
-    return (
-      <Container>
-        <Grid container className={classes.section} spacing={4}>
-          <Grid item sm={3}>
-            <ListItems
-              genres={this.state.genres}
-              onSelectGenre={this.handleSelectGenre}
-            />
-          </Grid>
-          <Grid item sm={9}>
-            <Link to="/vidly/add-movie" style={{ textDecoration: "none" }}>
-              <Button size="large" variant="contained" color="primary">
-                New Movie
-              </Button>
-            </Link>
-            <Typography display="block" className={classes.topText}>
-              {moviesLength < 1 ? "There are no " : `Showing ${moviesLength} `}
-              movies in the database.
-            </Typography>
-            <TextField
-              id="outlined-basic"
-              label="Search..."
-              variant="outlined"
-              fullWidth
-              className={classes.searchFrom}
-              color="secondary"
-              onChange={this.handleSearch}
-              value={this.state.searchValue}
-            />
-            <TableSec
-              movies={movies}
-              onDelete={this.handleDelete}
-              toggleLike={this.handleLikeToggle}
-              onSort={this.handleSorting}
-              sortColmn={sortColmn}
-            />
-            <Pagination
-              moviesLength={moviesLength}
-              currentPage={currentPage}
-              moviesOnPage={moviesOnPage}
-              onActivePage={this.handleActivePage}
-            />
-          </Grid>
-        </Grid>
-      </Container>
-    );
-  }
-}
-
-export default withStyles(useStyles)(Vidly);
+export default Vidly;
