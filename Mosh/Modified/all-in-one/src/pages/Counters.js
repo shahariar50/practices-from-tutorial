@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import { Container, Grid, Button } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import Counter from "./counters/Counter";
 import { useSelector, useDispatch } from "react-redux";
-
-// const { counter } = useSelector((state) => state);
-// console.log(counter);
+import {
+  addCounter,
+  increaseCounter,
+  decreaseCounter,
+  deleteCounter,
+  resetCounter,
+} from "../store/counters";
 
 const useStyles = makeStyles((theme) => ({
   section: {
@@ -18,49 +22,20 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Counters = () => {
-  const [counters, setCounters] = useState([
-    {
-      id: 1,
-      value: 0,
-    },
-  ]);
+  const { counters } = useSelector((state) => state);
+  const dispatch = useDispatch();
   const classes = useStyles();
 
-  const handleAdd = () => {
-    setCounters([
-      ...counters,
-      {
-        id: counters.length + 1,
-        value: 0,
-      },
-    ]);
-  };
-
-  const handleDelete = (props) => {
-    const values = counters.filter((counter) => counter.id !== props.id);
-    setCounters(values);
-  };
-
   const handleIncrease = (props) => {
-    const values = [...counters];
-    const index = values.indexOf(props);
-    values[index].value++;
-    setCounters(values);
+    dispatch(increaseCounter(props));
   };
 
   const handleDecrease = (props) => {
-    const values = [...counters];
-    const index = values.indexOf(props);
-    values[index].value > 0 && values[index].value--;
-    setCounters(values);
+    dispatch(decreaseCounter(props));
   };
 
-  const handleReset = () => {
-    const values = counters.map((counter) => {
-      counter.value = 0;
-      return counter;
-    });
-    setCounters(values);
+  const handleDelete = (props) => {
+    dispatch(deleteCounter(props));
   };
 
   return (
@@ -75,13 +50,17 @@ const Counters = () => {
             onDecrease={handleDecrease}
           ></Counter>
         ))}
-        <Button color="secondary" variant="contained" onClick={handleAdd}>
+        <Button
+          color="secondary"
+          variant="contained"
+          onClick={() => dispatch(addCounter())}
+        >
           Add
         </Button>
         <Button
           color="secondary"
           variant="contained"
-          onClick={handleReset}
+          onClick={() => dispatch(resetCounter())}
           className={classes.button}
         >
           Reset
