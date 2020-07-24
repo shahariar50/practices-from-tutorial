@@ -1,5 +1,4 @@
 import * as genresAPI from "./fakeGenreService";
-
 const movies = [
   {
     _id: "5b21ca3eeb7f6fbccd471815",
@@ -84,7 +83,6 @@ export function saveMovie(movie) {
   movieInDb.numberInStock = movie.numberInStock;
   movieInDb.dailyRentalRate = movie.dailyRentalRate;
 
-  console.log(movieInDb);
   if (!movieInDb._id) {
     movieInDb._id = Date.now();
     movies.push(movieInDb);

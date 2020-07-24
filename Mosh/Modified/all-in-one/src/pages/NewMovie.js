@@ -1,12 +1,17 @@
 import React from "react";
-import Form from "../utils/Forms";
-import { withStyles, createMuiTheme } from "@material-ui/core/styles";
-import Joi from "@hapi/joi";
-import { Container, Typography, TextField, MenuItem } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core/styles";
+import {
+  Container,
+  Typography,
+  TextField,
+  MenuItem,
+  Button,
+} from "@material-ui/core";
 import { getGenres } from "../services/fakeGenreService";
+import { useForm, Controller } from "react-hook-form";
+import { ErrorMessage } from "@hookform/error-message";
 
-const theme = createMuiTheme();
-const useStyles = {
+const useStyles = makeStyles((theme) => ({
   section: {
     paddingTop: theme.spacing(4),
     paddingBottom: theme.spacing(4),
@@ -17,75 +22,142 @@ const useStyles = {
   textField: {
     marginBottom: theme.spacing(3),
   },
+}));
+
+const NewMovie = () => {
+  // Functions
+  const renderTextField = (name, label, errors, reg, type = "text") => {
+    return (
+      <TextField
+        error={errors && true}
+        id={errors ? "standard-error-helper-text" : "outlined-basic"}
+        label={label}
+        name={name}
+        variant="outlined"
+        fullWidth
+        helperText={errors && errors}
+        className={classes.textField}
+        color={errors ? "primary" : "secondary"}
+        type={type}
+        inputRef={reg}
+      />
+    );
+  };
+
+  const onSubmit = (data) => console.log(data);
+
+  // Variables
+  const genres = getGenres();
+  const classes = useStyles();
+  const { handleSubmit, register, errors, control } = useForm({
+    criteriaMode: "all",
+  });
+  return (
+    <Container className={classes.section}>
+      <Typography className={classes.sectionHeader} variant="h2" component="h2">
+        Edit Your Movie
+      </Typography>
+      <form autoComplete="off" onSubmit={handleSubmit(onSubmit)}>
+        {renderTextField(
+          "name",
+          "Title",
+          errors.name?.message,
+          register({ required: "Don't leave it as empty." })
+        )}
+        {/* <TextField
+          id="standard-select-currency"
+          name="genre"
+          select
+          label="Genre"
+          value={data.genre}
+          onChange={this.handleChange}
+          fullWidth
+          className={classes.textField}
+        >
+          {genres.map((genre, index) => (
+            <MenuItem key={index} value={genre.name}>
+              {genre.name}
+            </MenuItem>
+          ))}
+        </TextField> */}
+        <Controller
+          name="genre"
+          control={control}
+          defaultValue=""
+          rules={{ required: "Select something." }}
+          render={(props) => (
+            <TextField
+              {...props}
+              id={
+                errors.genre
+                  ? "standard-error-helper-text"
+                  : "standard-select-currency"
+              }
+              color={errors.genre ? "primary" : "secondary"}
+              select
+              label="Genre"
+              fullWidth
+              className={classes.textField}
+              value={props.value}
+              onChange={({ target }) => {
+                props.onChange(target.value);
+              }}
+              error={errors.genre ? true : false}
+              helperText={
+                errors.genre ? (
+                  <ErrorMessage errors={errors} name="genre">
+                    {({ messages }) =>
+                      messages &&
+                      Object.entries(messages).map(([type, message]) => (
+                        <p key={type}>{message}</p>
+                      ))
+                    }
+                  </ErrorMessage>
+                ) : (
+                  ""
+                )
+              }
+            >
+              {genres.map((genre, index) => (
+                <MenuItem key={index} value={genre.name}>
+                  {genre.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        />
+        {renderTextField(
+          "numberInStock",
+          "Number In numberInStock",
+          errors.numberInStock?.message,
+          register({
+            required: "This field is required.",
+            min: { value: 0, message: "Minimum value is 0." },
+          }),
+          "number"
+        )}
+        {renderTextField(
+          "dailyRentalRate",
+          "dailyRentalRate",
+          errors.dailyRentalRate?.message,
+          register({
+            required: "This field is required.",
+            min: { value: 1, message: "Minimum value is 1." },
+            max: { value: 10, message: "Maximum value is 10." },
+          }),
+          "number"
+        )}
+        <Button
+          size="large"
+          variant="contained"
+          color="secondary"
+          type="submit"
+        >
+          Submit
+        </Button>
+      </form>
+    </Container>
+  );
 };
 
-class NewMovie extends Form {
-  state = {
-    data: {
-      _id: "",
-    },
-    errors: {},
-    genres: getGenres(),
-  };
-
-  schema = {
-    _id: Joi.string().required().label("Id"),
-    name: Joi.string().required().label("Title"),
-    genre: Joi.string().label("Genre"),
-    numberInStock: Joi.number().required().label("Number In numberInStock"),
-    dailyRentalRate: Joi.number().required().label("Rating"),
-  };
-
-  doSubmit = (e) => {
-    console.log(e);
-  };
-  render() {
-    const { classes } = this.props;
-    const { errors, data, genres } = this.state;
-    return (
-      <Container className={classes.section}>
-        <Typography
-          className={classes.sectionHeader}
-          variant="h2"
-          component="h2"
-        >
-          Edit Your Movie
-        </Typography>
-        <form autoComplete="off" onSubmit={this.handleSubmit}>
-          {this.renderTextField("name", "Title", errors.name, data.name)}
-          <TextField
-            id="standard-select-currency"
-            name="genre"
-            select
-            label="Genre"
-            value={data.genre}
-            onChange={this.handleChange}
-            fullWidth
-            className={classes.textField}
-          >
-            {genres.map((genre, index) => (
-              <MenuItem key={index} value={genre.name}>
-                {genre.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          {this.renderTextField(
-            "numberInStock",
-            "Number In numberInStock",
-            errors.numberInStock,
-            data.numberInStock
-          )}
-          {this.renderTextField(
-            "dailyRentalRate",
-            "dailyRentalRate",
-            errors.dailyRentalRate,
-            data.dailyRentalRate
-          )}
-          {this.renderButton("Save")}
-        </form>
-      </Container>
-    );
-  }
-}
-
-export default withStyles(useStyles)(NewMovie);
+export default NewMovie;
